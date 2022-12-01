@@ -224,7 +224,7 @@
         if($is_pass == 1){
             echo("[INFO] This item is pass\n");
         }else {
-            $value_player[$buyer] += value_list[$item];
+            $value_player[$buyer] += $value_list[$item];
             // whether is Vikerey auction
             if($is_vikerey == 1){
                 rsort($bid_price);
@@ -234,6 +234,7 @@
             }
             echo("[INFO] Player $buyer buy item $item at price of $highest_price\n");
         }
+        
         
         $info = "";
         //  print statistics and send info to players

@@ -76,7 +76,7 @@ class Client():
 
         item_ind = 1
         bid = [self.generatefirstbid(item_ind), self.team_id]
-        self.sendbid(bid.join(" "))
+        self.sendbid(" ".join([str(i) for i in bid]))
 
         while True:
             state = self.getstate()
@@ -84,13 +84,13 @@ class Client():
             if state[0] == "bid":
                 bids = [int(x) for x in state[1:]]
                 bid = [self.generatebid(bids), self.team_id]
-                self.sendbid(bid.join(" "))
+                self.sendbid(" ".join([str(i) for i in bid]))
             elif state[0] == "result":
                 result = [int(x) for x in state[1:]]
                 processresult(result)
                 item_ind += 1
                 bid = [self.generatefirstbid(item_ind), self.team_id]
-                self.sendbid(bid.join(" "))
+                self.sendbid(" ".join([str(i) for i in bid]))
             elif state[0] == "end":
                 break;
 
