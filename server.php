@@ -129,7 +129,7 @@
         
         // bid of each player at a round
         $bid_price;
-        for($p = 1; $p <= $num_players; $p++){
+        for($p = 0; $p <= $num_players; $p++){
             $bid_price[$p] = -1;
         }
         $starting_price = 0;
@@ -216,10 +216,13 @@
             if($bid_price[$i] > $highest_price){
                 $highest_price = $bid_price[$i];
                 $buyer = $i;
-            } else if($bid_price[$i] == $highest_price || $highest_price != -1){
+            } else if($bid_price[$i] == $highest_price && $highest_price != -1){
                 $is_pass = 1;
                 break;
             }
+        }
+        if($buyer == -1){
+            $is_pass = 1;
         }
         if($is_pass == 1){
             echo("[INFO] This item is pass\n");
@@ -228,11 +231,16 @@
             // whether is Vikerey auction
             if($is_vikerey == 1){
                 rsort($bid_price);
-                $budget_player[$buyer] -= $bid_price[1];
+                if($bid_price[1] == -1){
+                    echo("[INFO] Player $buyer buy item $item at price of 0\n");
+                }else{
+                    $budget_player[$buyer] -= $bid_price[1];
+                    echo("[INFO] Player $buyer buy item $item at price of $bid_price[1]\n");
+                }
             }else{
                 $budget_player[$buyer] -= $highest_price;
+                echo("[INFO] Player $buyer buy item $item at price of $highest_price\n");
             }
-            echo("[INFO] Player $buyer buy item $item at price of $highest_price\n");
         }
         
         
