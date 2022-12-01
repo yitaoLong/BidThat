@@ -19,9 +19,11 @@ class Client():
         # This is important for calculating the opponent's move in the case where we go second
         init_info = [int(x) for x in self.socket.recv(1024).decode().rstrip().split(" ")]
 
-        self.items = init_info[:-2]
+        self.items = init_info[:-4]
         self.team_id = init_info[-1]
         self.budget = init_info[-2]
+        self.is_vikerey = init_info[-3]
+        self.num_rounds = init_info[-4]
 
         print(f'Your are team {self.team_id}.')
         print(f'The starting budget is {self.budget}.')
@@ -71,27 +73,42 @@ class Client():
         generatebid(), and sendbid() in that order
         '''
 
-
-        item_ind = 1
-        bid = [self.generatebid(item_ind, []), self.team_id]
-        self.sendbid(" ".join([str(i) for i in bid]))
-
-        while True:
-            state = self.getstate()
+        for item_ind in range(len(self.items)):
             bids = []
-            if state[0] == "bid":
+            for j in range(self.num_rounds):
+                bid = [self.generatebid(item_ind, bids), self.team_id]
+                self.sendbid(" ".join([str(i) for i in bid]))
+                time.sleep(0.1)
+                state = self.getstate()
+                if state[0] == "end":
+                    sys.exit("Timeout!")
                 bids = [int(x) for x in state[1:]]
-            elif state[0] == "result":
-                item_ind += 1
-            elif state[0] == "end":
-                break;
-
-            bid = [self.generatebid(item_ind, bids), self.team_id]
-            self.sendbid(" ".join([str(i) for i in bid]))
-
-            time.sleep(0.1)
-
+            # send message about completing bid for an item
+            self.socket.send("completed".encode("utf-8"))
+            #  TODO: store info
+            info = self.getstate()
         self.socket.close()
+
+        # item_ind = 1
+        # bid = [self.generatebid(item_ind, []), self.team_id]
+        # self.sendbid(" ".join([str(i) for i in bid]))
+        #
+        # while True:
+        #     state = self.getstate()
+        #     bids = []
+        #     if state[0] == "bid":
+        #         bids = [int(x) for x in state[1:]]
+        #     elif state[0] == "result":
+        #         item_ind += 1
+        #     elif state[0] == "end":
+        #         break;
+        #
+        #     bid = [self.generatebid(item_ind, bids), self.team_id]
+        #     self.sendbid(" ".join([str(i) for i in bid]))
+        #
+        #     time.sleep(0.1)
+        #
+        # self.socket.close()
 
 
 class NaivePlayer(Client):

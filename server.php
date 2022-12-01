@@ -109,7 +109,7 @@
     // send initial data to all the players
     for($i = 1; $i <= $num_players; $i++){
         $tmp = implode(" ", $value_list);
-        send_message($connections[$i], "$tmp $budget $i\n", $is_websocket[$i]);
+        send_message($connections[$i], "$tmp $num_rounds $is_vikerey $budget $i\n", $is_websocket[$i]);
     }
     
     // TODO: send initial data to observer
@@ -216,7 +216,7 @@
             if($bid_price[$i] > $highest_price){
                 $highest_price = $bid_price[$i];
                 $buyer = $i;
-            } else if($bid_price[$i] == $highest_price && $highest_price != -1){
+            } else if($bid_price[$i] == $highest_price || $highest_price != -1){
                 $is_pass = 1;
                 break;
             }
@@ -224,7 +224,7 @@
         if($is_pass == 1){
             echo("[INFO] This item is pass\n");
         }else {
-            $value_player[$buyer] += $value_list[$item];
+            $value_player[$buyer] += $value_list[$item-1];
             // whether is Vikerey auction
             if($is_vikerey == 1){
                 rsort($bid_price);
@@ -247,15 +247,16 @@
             }
         }
         for($i = 1; $i <= $num_players; $i++){
+            $command = socket_read($connections[$i], 1024);
             send_message($connections[$i], "result $info\n", $is_websocket[$i]);
         }
     }
 
-    // send both players 0
-    // useful for graceful quitting
-    for($i = 1; $i <= $num_players; $i++){
-        send_message($connections[$i], "end\n", $is_websocket[$i]);
-    }
+//    // send both players 0
+//    // useful for graceful quitting
+//    for($i = 1; $i <= $num_players; $i++){
+//        send_message($connections[$i], "end\n", $is_websocket[$i]);
+//    }
 
     // print result
     $highest_value = 0;
