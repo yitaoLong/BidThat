@@ -73,7 +73,7 @@ class Client():
 
 
         item_ind = 1
-        bid = [self.generatefirstbid(item_ind, []), self.team_id]
+        bid = [self.generatebid(item_ind, []), self.team_id]
         self.sendbid(" ".join([str(i) for i in bid]))
 
         while True:
