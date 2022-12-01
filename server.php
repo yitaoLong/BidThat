@@ -25,7 +25,7 @@
         }
         $count++;
     }
-    echo("[LOG] Data imported!");
+    echo("[LOG] Data imported!\n");
     
     // open, bind, and begin listening on socket
     $socket = socket_create(AF_INET, SOCK_STREAM, 0);
@@ -139,7 +139,7 @@
             // for loop for each player
             for($i = 1; $i <= $num_players; $i++){
                 // ignore player if it is out
-                if ($is_lose[i] == 1){
+                if ($is_lose[$i] == 1){
                     echo("[LOG] Player $i is out\n");
                     continue;
                 }
@@ -155,19 +155,19 @@
                 $command = socket_read($connections[$i], 1024);
                 
                 // in the event of a timeout, forcefully end the game of current player, but continue the game with remaining players
-                if(!command) {
+                if(!$command) {
                     // send messages to players and close socket
-                    send_message($connections[i], "0\n", $is_websocket[i]);
+                    send_message($connections[$i], "end\n", $is_websocket[$i]);
                     // log results
                     echo("[LOG] Player $i timeout\n");
                     // player i is lose
-                    $is_lose[i] = 1;
-                    $bid_price[i] = -1;
+                    $is_lose[$i] = 1;
+                    $bid_price[$i] = -1;
                     $remaining_players--;
                     // if there has only one player, then this player win the game directly
                     if($remaining_players == 1){
                         for($j = 1; $j <= $num_players; $j++){
-                            if($is_lose[j] == 0){
+                            if($is_lose[$j] == 0){
                                 echo("[INFO] Player $j wins!\n\n");
                                 // exit program
                                 exit;
@@ -202,8 +202,8 @@
             echo("Bid price at this round\n");
             for($p = 1; $p <= $num_players; $p++){
                 $tmp = implode(" ", $bid_price);
-                send_message($connections[p], "$tmp\n", $is_websocket[p]);
-                echo("Player $p offer a price of $bid_price[p]\n");
+                send_message($connections[$p], "bid $tmp\n", $is_websocket[$p]);
+                echo("Player $p offer a price of $bid_price[$p]\n");
             }
             $starting_price = max($bid_price);
         }
@@ -213,10 +213,10 @@
         $buyer = -1;
         $is_pass = 0;
         for($i = 1; $i <= $num_players; $i++){
-            if($bid_price[i] > $highest_price){
-                $highest_price = $bid_price[i];
-                $buyer = i;
-            } else if($bid_price[i] == $highest_price && $highest_price != -1){
+            if($bid_price[$i] > $highest_price){
+                $highest_price = $bid_price[$i];
+                $buyer = $i;
+            } else if($bid_price[$i] == $highest_price && $highest_price != -1){
                 $is_pass = 1;
                 break;
             }
@@ -246,14 +246,14 @@
             }
         }
         for($i = 1; $i <= $num_players; $i++){
-            send_message($connections[i], "$info\n", $is_websocket[i]);
+            send_message($connections[$i], "result $info\n", $is_websocket[$i]);
         }
     }
 
     // send both players 0
     // useful for graceful quitting
     for($i = 1; $i <= $num_players; $i++){
-        send_message($connections[i], "0\n", $is_websocket[i]);
+        send_message($connections[$i], "end\n", $is_websocket[$i]);
     }
 
     // print result
