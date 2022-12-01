@@ -47,10 +47,7 @@ class Client():
 
         self.socket.send(f"{bid}".encode("utf-8"))
 
-    def generatefirstbid(self, item_ind):
-        raise NotImplementedError
-
-    def generatebid(self, bids):
+    def generatebid(self, item_ind, bids):
         '''
         Given the state of the game as input, computes the desired move and returns it.
         NOTE: this is just one way to handle the agent's policy -- feel free to add other
@@ -74,25 +71,23 @@ class Client():
         generatebid(), and sendbid() in that order
         '''
 
+
         item_ind = 1
-        bid = [self.generatefirstbid(item_ind), self.team_id]
+        bid = [self.generatefirstbid(item_ind, []), self.team_id]
         self.sendbid(" ".join([str(i) for i in bid]))
 
         while True:
             state = self.getstate()
-
+            bids = []
             if state[0] == "bid":
                 bids = [int(x) for x in state[1:]]
-                bid = [self.generatebid(bids), self.team_id]
-                self.sendbid(" ".join([str(i) for i in bid]))
             elif state[0] == "result":
-                result = [int(x) for x in state[1:]]
-                processresult(result)
                 item_ind += 1
-                bid = [self.generatefirstbid(item_ind), self.team_id]
-                self.sendbid(" ".join([str(i) for i in bid]))
             elif state[0] == "end":
                 break;
+
+            bid = [self.generatebid(item_ind, bids), self.team_id]
+            self.sendbid(" ".join([str(i) for i in bid]))
 
             time.sleep(0.1)
 
@@ -108,10 +103,7 @@ class NaivePlayer(Client):
     def __init__(self, port=5000):
         super(NaivePlayer, self).__init__(port)
 
-    def generatebid(self, state):
-        return random.randint(0, self.budget)
-
-    def generatefirstbid(self, item_ind):
+    def generatebid(self, item_ind, bids):
         return random.randint(0, self.budget)
 
     def processresult(self, result):
