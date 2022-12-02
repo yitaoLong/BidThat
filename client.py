@@ -133,8 +133,11 @@ class NaivePlayer(Client):
         super(NaivePlayer, self).__init__(port)
 
     def generatebid(self, item_ind, bids):
-        print(self.budget//len(self.items))
-        return random.randint(0, self.budget//len(self.items))
+        play = random.randint(0, 1)
+        if play and bids[self.team_id-1] <= self.budget:
+            return random.randint(bids[self.team_id-1], self.budget)
+        else:
+            return bids[self.team_id-1]
 
     def processresult(self, result):
         return
