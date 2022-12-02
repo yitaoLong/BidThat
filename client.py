@@ -24,6 +24,7 @@ class Client():
         self.budget = init_info[-2]
         self.is_vikerey = init_info[-3]
         self.num_rounds = init_info[-4]
+        self.all_id_budget_value = []
 
         print(f'Your are team {self.team_id}.')
         print(f'The starting budget is {self.budget}.')
@@ -87,6 +88,18 @@ class Client():
             self.socket.send("completed".encode("utf-8"))
             #  TODO: store info
             info = self.getstate()
+            self.processresult(info)
+            # Below is the helper to update budget and store all current teams' info
+            all_id_budget_value = []
+            id_budget_value = []
+            for e in info[1:]:
+                id_budget_value.append(int(e))
+                if len(id_budget_value) == 3:
+                    all_id_budget_value.append(id_budget_value)
+                    id_budget_value = []
+            self.all_id_budget_value = all_id_budget_value
+            self.budget = self.all_id_budget_value[self.team_id-1][1]
+
         self.socket.close()
 
         # item_ind = 1
@@ -116,12 +129,12 @@ class NaivePlayer(Client):
     Very simple client which just starts at the lowest possible move
     and increases its move by 1 each turn
     '''
-
     def __init__(self, port=5000):
         super(NaivePlayer, self).__init__(port)
 
     def generatebid(self, item_ind, bids):
-        return random.randint(0, self.budget)
+        print(self.budget//len(self.items))
+        return random.randint(0, self.budget//len(self.items))
 
     def processresult(self, result):
         return
