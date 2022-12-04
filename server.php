@@ -210,18 +210,18 @@
         
         // the player who offer the highest price get the item, if there has two or more players offer the same highest price, then this item passes.
         $highest_price = -1;
+        $second_highest_price = -1;
         $buyer = -1;
         $is_pass = 0;
         for($i = 1; $i <= $num_players; $i++){
-            if($bid_price[$i] > $highest_price){
+            if($bid_price[$i] >= $highest_price){
+                $second_highest_price = $highest_price;
                 $highest_price = $bid_price[$i];
                 $buyer = $i;
-            } else if($bid_price[$i] == $highest_price && $highest_price != -1){
-                $is_pass = 1;
-                break;
             }
         }
-        if($buyer == -1){
+
+        if($second_highest_price == $highest_price){
             $is_pass = 1;
         }
         if($is_pass == 1){
