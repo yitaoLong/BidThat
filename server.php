@@ -2,12 +2,17 @@
     // check command line arguments
     if($argc < 4 || !is_numeric($argv[1]) || !is_numeric($argv[2]) || !is_numeric($argv[3]) || !is_numeric($argv[4])) {
         echo("[ERROR] Please provide port number, number of players, number of rounds and Vikerey auction\n");
-        echo("[ERROR] Example command: php server.php 5000 2 3 0\n");
+        echo("[ERROR] Example command: php server.php $port 2 3 0\n");
         exit(-1);
     }
 
     // start server
     echo("[LOG] Starting server at localhost:$argv[1] with $argv[2] players, $argv[3] rounds and Vikerey auction marked is $argv[4]\n");
+    $port = $argv[1];
+    $num_players = $argv[2];
+    $num_rounds = $argv[3];
+    $is_vikerey = $argv[4];
+    $observer = ($argc == 6 && $argv[5] == "-o");
 
     // read data file
     $data_file = fopen("data.txt", "r") or die("Unable to open file!");
@@ -29,11 +34,34 @@
     
     // open, bind, and begin listening on socket
     $socket = socket_create(AF_INET, SOCK_STREAM, 0);
-    socket_bind($socket, 'localhost', $argv[1]);
+    socket_bind($socket, 'localhost', $port);
     socket_listen($socket);
 
     $connections;
-    $observed = false;
+
+    // wait for observer
+    if($observer) {
+		// log status
+		echo("[LOG] Waiting for Observer\n");
+
+		// blocking call waiting for connection
+		$connections[0] = socket_accept($socket);
+
+		// extra communication to identify client (see comment below for more details on websocket exchange)
+		$identification = socket_read($connections[0], $port);
+		if(strpos($identification, "Sec-WebSocket-Key:") !== false) {
+			preg_match('#Sec-WebSocket-Key: (.*)\r\n#', $identification, $matches);
+			$key = base64_encode(pack('H*', sha1($matches[1] . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
+			$headers = "HTTP/1.1 101 Switching Protocols\r\n";
+			$headers .= "Upgrade: websocket\r\n";
+			$headers .= "Connection: Upgrade\r\n";
+			$headers .= "Sec-WebSocket-Version: 13\r\n";
+			$headers .= "Sec-WebSocket-Accept: $key\r\n\r\n";
+			socket_write($connections[0], $headers, strlen($headers));
+		}
+	}
+
+
     // wait for connections from players
     $is_websocket;
     $name;
@@ -48,7 +76,7 @@
         // if a websocket is being used we need to do a handshake
         // all other clients can send whatever they want as long as it doesn't contain "Sec-WebSocket-Key:"
         // identification code based on https://medium.com/@cn007b/super-simple-php-websocket-example-ea2cd5893575
-        $identification = socket_read($connections[$i], 5000);
+        $identification = socket_read($connections[$i], $port);
         if(strpos($identification, "Sec-WebSocket-Key:") !== false) {
             preg_match('#Sec-WebSocket-Key: (.*)\r\n#', $identification, $matches);
             $key = base64_encode(pack('H*', sha1($matches[1] . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
@@ -93,9 +121,6 @@
     }
 
     // initialize game
-    $num_players = $argv[2];
-    $num_rounds = $argv[3];
-    $is_vikerey = $argv[4];
     $budget_player;
     $value_player;
     $is_lose;
@@ -104,16 +129,22 @@
         $budget_player[$i] = $budget;
         $value_player[$i] = 0;
         $is_lose[$i] = 0;
+
+    }
+
+    $names = implode(" ", $name);
+    $tmp = implode(" ", $value_list);
+
+    // send initial data to observer
+    if($observer){
+        send_message($connections[0], "$tmp\n $names\n $num_rounds\n $is_vikerey\n $budget\n", true);
     }
 
     // send initial data to all the players
     for($i = 1; $i <= $num_players; $i++){
-        $tmp = implode(" ", $value_list);
         send_message($connections[$i], "$tmp $num_rounds $is_vikerey $budget $i\n", $is_websocket[$i]);
     }
     
-    // TODO: send initial data to observer
-
     // both players now have 2 minutes each remaining (120 seconds)
     $time_remaining;
     for($i = 1; $i <= $num_players; $i++){
@@ -206,6 +237,12 @@
                 echo("Player $p offer a price of $bid_price[$p]\n");
             }
             $starting_price = max($bid_price);
+
+            sleep(3);
+
+            if ($observer) {
+                send_message($connections[0], "bid $starting_price $tmp", true);
+            }
         }
         
         // the player who offer the highest price get the item, if there has two or more players offer the same highest price, then this item passes.
@@ -257,6 +294,10 @@
         for($i = 1; $i <= $num_players; $i++){
             $command = socket_read($connections[$i], 1024);
             send_message($connections[$i], "result $info\n", $is_websocket[$i]);
+        }
+
+        if ($observer) {
+            send_message($connections[0], "result $info\n", true);
         }
     }
 

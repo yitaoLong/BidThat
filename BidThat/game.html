@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <head>
+        <!-- <base href="http://cims.nyu.edu/drecco2016/"> -->
+        <script src="js/jquery-2.2.4.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.11/p5.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.11/addons/p5.dom.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.11/addons/p5.sound.min.js"></script>
+        <script src="./script.js"></script>
+        <link rel="stylesheet" type="text/css" href="css/bootstrap.css"/>
+        <link rel="stylesheet" type="text/css" href="css/game.css"/>
+        <script src="script.js"></script>
+        <script src="js/gameSettings.js"></script>
+    </head>
+    <body>
+        <div class="container-fluid"> 
+            <h1 class="page-header game-title"> BidThat Game </h1> 
+
+            <div class="information-container col-sm-3">
+                <div class="information col-sm-10">
+				<div class="info-form">
+        				<h2 class="information-header"> Game information </h2>
+                        <label for="num_players"> Number of Players </label>
+                        <input type="text" class="form-control info-input" id="num_players" value="2">
+                    </div>
+
+                     <div class="info-form">
+                       <label for="num_rounds"> Number of Rounds </label>
+                        <input type="text" class="form-control info-input" id="num_rounds" value="1">
+                    </div> 
+
+                  <div class="info-form">
+                        <label for="is_vikerey"> Vikerey Auction? </label>
+						 <br>
+                    <select id="vikerey_option" name="vikerey_option">
+                			<option>No</option>
+                			<option>Yes</option>
+            			</select>
+                  </div>
+					
+					<div class="info-form">
+                        <label for="budget"> Budget </label>
+                        <input type="text" class="form-control info-input" id="budget" value="100">
+                    </div> 
+
+                  <div class="info-form">
+                        <label for="input_data"> Value of Each Item </label>
+						 <br>
+                        <textarea rows="3" cols="20" id="input_data">60 25 45</textarea>
+                    </div>
+
+                     <div class="col-sm-12 alert alert-danger alert-dismissable" id="error-container">
+                        <a href="#" class="close" aria-label="close">&times;</a>
+                        <p id="error-message"> </p>
+                    </div>
+                    <div class="btn-container col-sm-12">
+                        <button id="game_start" type="button" class="start-game btn btn-primary" onclick="startGame();">Start new game</button>
+                    </div>
+
+                   
+                </div>
+            </div>
+            <div class="game col-sm-9" id='game-container'>
+				<div class="auctioneer" id='auctioneer' style="position: absolute; left: 0px; top: 0px; width: 200px; height: 200px">  </div>
+				<div class="message" id='message' style="position: absolute; left: 200px; top: 0px; width: 200px; height: 200px">  </div>
+				<div class="scoreboard" id='scoreboard' style="position: absolute; left: 400px; top: 0px">  </div>
+				<div class="players" id='players' style="position: absolute; left: 0px; top: 300px; width: 1000px">  </div>
+            </div>
+        </div>
+    </body>
+
+    <script>
+        $('.close').on('click', function() {
+            $(this).parent().hide();
+            console.log('worked');
+        });
+
+    </script>
+</html>

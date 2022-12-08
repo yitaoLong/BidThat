@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+<head>
+    <script src="BidThat/js/jquery-2.2.4.min.js"></script>
+    <script src="BidThat/script.js"></script>
+    <link rel="stylesheet" type="text/css" href="BidThat/css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="BidThat/css/game.css"/>
+    <script src="BidThat/script.js"></script>
+    <script src="BidThat/js/gameSettings.js"></script>
+</head>
+<body>
+
+<h1 id="game_msg">Connecting...</h1>
+<br>
+
+<div class="container-fluid">
+    <h1 class="page-header game-title"> BidThat Game </h1>
+
+    <div class="information-container col-sm-3">
+        <div class="information col-sm-10">
+            <div class="info-form">
+                <h2 class="information-header"> Game information </h2>
+                <label for="num_players"> Number of Players </label>
+                <input type="text" class="form-control info-input" id="num_players">
+            </div>
+
+            <div class="info-form">
+                <label for="num_rounds"> Number of Rounds </label>
+                <input type="text" class="form-control info-input" id="num_rounds">
+            </div>
+
+            <div class="info-form">
+                <label for="is_vikerey"> Vikerey Auction? </label>
+                <br>
+                <select id="vikerey_option" name="vikerey_option">
+                    <option>No</option>
+                    <option>Yes</option>
+                </select>
+            </div>
+
+            <div class="info-form">
+                <label for="budget"> Budget </label>
+                <input type="text" class="form-control info-input" id="budget">
+            </div>
+
+            <div class="info-form">
+                <label for="input_data"> Value of Each Item </label>
+                <br>
+                <textarea rows="3" cols="20" id="input_data"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="game col-sm-9" id='game-container'>
+        <div class="auctioneer" id='auctioneer'
+             style="position: absolute; left: 0px; top: 0px; width: 200px; height: 200px"></div>
+        <div class="message" id='message'
+             style="position: absolute; left: 200px; top: 0px; width: 200px; height: 200px"></div>
+        <div class="scoreboard" id='scoreboard' style="position: absolute; left: 400px; top: 0px"></div>
+        <div class="players" id='players' style="position: absolute; left: 0px; top: 300px; width: 1000px"></div>
+    </div>
+</div>
+</body>
+
+<script>
+    let socket = new WebSocket("ws://localhost:5000/");
+    let game_state = "connecting"; // connecting, waiting, idling, done
+    let game;
+
+    socket.onopen = function (e) {
+        document.getElementById("game_msg").innerHTML = "Waiting for all players.";
+        game_state = "waiting";
+    };
+
+    socket.onmessage = function (e) {
+        if (game_state == "waiting") {
+            document.getElementById("game_msg").innerHTML = "Game in progress.";
+
+            // $tmp\n $names\n $num_rounds\n $is_vikerey\n $budget\n
+            let pdata = e.data.split("\n");
+            value_list = pdata[0].split(" ").map(i => parseInt(i))
+            let names = pdata[1].split(" ").slice(1)
+            num_players = names.length
+            num_rounds = parseInt(pdata[2])
+            is_vikerey = parseInt(pdata[3])
+            budget = parseInt(pdata[4])
+
+            for (let i = 0; i < num_players; i++) {
+                budget_player.push(budget);
+                value_player.push(0);
+            }
+
+            $("#num_players").val(num_players);
+            $("#num_rounds").val(num_rounds);
+            $("#vikerey_option").val(is_vikerey == 1 ? "Yes" : "No");
+            $("#budget").val(budget);
+            $("#input_data").val(value_list);
+
+            $("#num_players").attr("disabled", "disabled");
+            $("#num_rounds").attr("disabled", "disabled");
+            $("#vikerey_option").attr("disabled", "disabled");
+            $("#budget").attr("disabled", "disabled");
+            $("#input_data").attr("disabled", "disabled");
+
+            game = new Game();
+            initial_players();
+
+            game_state = "idling";
+        } else if (game_state == "idling") {
+            // $tmp
+            let data = e.data.split(" ");
+            if (data[0] == "bid") {
+                recieve_bids(data.slice(1).map(bid => parseInt(bid)));
+            } else if (data[0] == "result") {
+                receive_results(data.slice(1).map(re => parseInt(re)));
+            }
+        }
+    };
+
+    function initial_players() {
+        for (let i = 1; i <= num_players; i++) {
+            var player_div = document.createElement('div');
+            player_div.style.width = '230px';
+            player_div.style.display = 'inline-block';
+
+            var la = document.createElement('label');
+            la.innerHTML = "Player" + i;
+            la.style.width = '50px';
+            la.style.margin = '5px';
+            player_div.appendChild(la);
+
+            var input_area = document.createElement('input');
+            input_area.setAttribute('id', 'input' + i.toString());
+            input_area.style.width = '50px';
+            input_area.style.margin = '5px';
+            player_div.appendChild(input_area);
+
+            document.getElementById('players').appendChild(player_div);
+        }
+    }
+
+    function recieve_bids(bids) {
+        if (game.current_item == 1 && game.current_round == 1) {
+            game.message.update_message(`Bid for item ${game.current_item}. This is round ${game.current_round}. Starting price is 0`)
+        }
+        for (let i = 1; i <= num_players; i++) {
+            $("#input" + i.toString()).val(bids[i + 1] == -1 ? "pass" : bids[i + 1])
+        }
+        game.current_round += 1
+        if (game.current_round <= num_rounds) {
+            game.message.update_message(`Bid for item ${game.current_item}. This is round ${game.current_round}. Starting price is ${bids[0]}`)
+        }
+    }
+
+    function receive_results(result) {
+        let max_score = 0
+        let max_score_ind = -1;
+
+        for (let i = 0; i < result.length; i++) {
+            if (i > 0 && i % 3 == 0) {
+                let x = $("#score_table")[0].rows[i / 3].cells;
+                x[1].innerHTML = result[i - 2]; // budget
+                x[2].innerHTML = result[i - 1]; // score
+                if (result[i-1] > max_score) {
+                    max_score = result[i-1]
+                    max_score_ind = i/3
+                }
+            }
+        }
+
+        if (game.current_item == value_list.length) {
+            game.message.update_message(`Player ${max_score_ind} wins with a total value of ${max_score}`)
+            return;
+        }
+
+        game.current_item += 1
+        game.current_round = 1
+        game.message.update_message(`Bid for item ${game.current_item}. This is round ${game.current_round}. Starting price is 0`)
+    }
+
+</script>
+</html>
